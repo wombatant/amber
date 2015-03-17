@@ -1,13 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
 #include <math.h>
 
 //#define GL3_PROTOTYPES 1
 //#define GL_GLEXT_PROTOTYPES 1
 #include <GL/glew.h>
 #include <SDL2/SDL_opengl.h>
-#include <GL/glu.h>
 
 #include <SDL2/SDL.h>
 //#include <SDL2/SDL_opengl.h>
@@ -64,12 +64,26 @@ GLuint buildShaderProgram(const GLchar *vert, const GLchar *frag, GLuint buff) {
 	return prgm;
 }
 
-GLuint buildVbo(float vertices[], int size) {
+GLuint buildRect(float vertices[], int size) {
+	// vao
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+	// vbo
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
-	return vbo;
+	// ebo
+	GLuint ebo;
+	glGenBuffers(1, &ebo);
+	GLuint elms[] = {
+		0, 1, 2,
+		2, 3, 0
+	};
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elms), elms, GL_STATIC_DRAW);
+	return ebo;
 }
 
 }
@@ -90,17 +104,14 @@ int main(int argc, char *argv[]) {
 	glewExperimental = GL_TRUE;
 	glewInit();
 
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
 	// set up scene
-	float triangle[] = {
-		  0.0f,  0.5f, // Vertex 1 (X, Y)
-		  0.5f, -0.5f, // Vertex 2 (X, Y)
-		 -0.5f, -0.5f  // Vertex 3 (X, Y)
+	float rect[] = {
+		-0.5f, 0.5f, // top left
+		 0.0f, 0.5f, // top right
+		 0.0f, 0.0f, // bottom right
+		-0.5f, 0.0f, // bottom left
 	};
-	buildVbo(triangle, sizeof(triangle));
+	buildRect(rect, sizeof(rect));
 	auto shader = buildShaderProgram(vshad, fshad, 0);
 	glUseProgram(shader);
 	auto posAttrib = glGetAttribLocation(shader, "position");
@@ -111,7 +122,7 @@ int main(int argc, char *argv[]) {
 	for (bool running = true; running;) {
 		// handle events
 		SDL_Event sev;
-		if (SDL_WaitEventTimeout(&sev, 15) != 0) {
+		if (SDL_WaitEventTimeout(&sev, 3) != 0) {
 			// got event
 			const auto t = sev.type;
 			if (t == SDL_QUIT) {
@@ -121,9 +132,9 @@ int main(int argc, char *argv[]) {
 			}
 		} else {
 			// timeout
-			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			SDL_GL_SwapWindow(window);
+			std::cout << "Narf!\n";
 		}
 	}
 
