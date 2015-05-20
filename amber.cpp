@@ -41,6 +41,8 @@ GLuint buildShader(GLuint shaderType, const GLchar *src, const char *shaderName)
 		char errMsg[errMsgSize];
 		glGetShaderInfoLog(shader, errMsgSize, nullptr, errMsg);
 		printf("shader compile error in %s:\n%s\n", shaderName, errMsg);
+		glDeleteShader(shader);
+		shader = 0;
 	}
 	return shader;
 }
@@ -54,12 +56,24 @@ GLuint buildFragShader(const GLchar *src, const char *shaderName) {
 }
 
 GLuint buildShaderProgram(const GLchar *vert, const GLchar *frag, GLuint buff) {
-	auto vs = buildVertShader(vert, "vshad");
-	auto fs = buildFragShader(frag, "fshad");
-	auto prgm = glCreateProgram();
-	glAttachShader(prgm, vs);
-	glAttachShader(prgm, fs);
-	glLinkProgram(prgm);
+	GLuint vs, fs, prgm = 0;
+	vs = buildVertShader(vert, "vshad");
+	if (!vs) {
+		glDeleteShader(vs);
+	} else {
+		fs = buildFragShader(frag, "fshad");
+		if (!fs) {
+			// cleanup shaders that were created
+			glDeleteShader(fs);
+		} else {
+			prgm = glCreateProgram();
+			if (prgm) {
+				glAttachShader(prgm, vs);
+				glAttachShader(prgm, fs);
+				glLinkProgram(prgm);
+			}
+		}
+	}
 	return prgm;
 }
 
