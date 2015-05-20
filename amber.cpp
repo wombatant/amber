@@ -10,7 +10,6 @@
 #include <SDL2/SDL_opengl.h>
 
 #include <SDL2/SDL.h>
-//#include <SDL2/SDL_opengl.h>
 
 #include "amber.hpp"
 
@@ -64,16 +63,21 @@ GLuint buildShaderProgram(const GLchar *vert, const GLchar *frag, GLuint buff) {
 	return prgm;
 }
 
-GLuint buildRect(float vertices[], int size) {
-	// vao
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+
+// BEGIN: Rect
+
+Rect buildRect(float x, float y, float w, float h) {
+	float vertices[] = {
+		    x,     y, // top left
+		x + w,     y, // top right
+		x + w, y + h, // bottom right
+		    x, y + h, // bottom left
+	};
 	// vbo
 	GLuint vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	// ebo
 	GLuint ebo;
 	glGenBuffers(1, &ebo);
@@ -83,8 +87,19 @@ GLuint buildRect(float vertices[], int size) {
 	};
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elms), elms, GL_STATIC_DRAW);
-	return ebo;
+	// return Rect
+	Rect rect;
+	rect.vbo = vbo;
+	rect.ebo = ebo;
+	return rect;
 }
+
+void bind(Rect rect) {
+	glBindBuffer(GL_ARRAY_BUFFER, rect.vbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect.ebo);
+}
+
+// END: Rect
 
 }
 
@@ -99,30 +114,45 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
-	auto window = SDL_CreateWindow("Amber", 100, 100, 800, 600, SDL_WINDOW_OPENGL);
+	auto window = SDL_CreateWindow("Amber", 100, 100, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 	auto context = SDL_GL_CreateContext(window);
 	glewExperimental = GL_TRUE;
 	glewInit();
 
 	// set up scene
-	float rect[] = {
-		-0.5f, 0.5f, // top left
-		 0.0f, 0.5f, // top right
-		 0.0f, 0.0f, // bottom right
-		-0.5f, 0.0f, // bottom left
-	};
-	buildRect(rect, sizeof(rect));
+
+	// vao
+	GLuint vao;
+	glGenVertexArrays(2, &vao);
+	glBindVertexArray(vao);
+
+	// ebo
+	auto rect = buildRect(0, 0);
 	auto shader = buildShaderProgram(vshad, fshad, 0);
 	glUseProgram(shader);
 	auto posAttrib = glGetAttribLocation(shader, "position");
 	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(posAttrib);
 
+	// vao2
+	GLuint vao2;
+	glGenVertexArrays(2, &vao2);
+	glBindVertexArray(vao2);
+
+	// ebo2
+	auto rect2 = buildRect(-0.5f, -0.5f);
+	auto shader2 = buildShaderProgram(vshad, fshad, 0);
+	glUseProgram(shader2);
+	auto posAttrib2 = glGetAttribLocation(shader2, "position");
+	glVertexAttribPointer(posAttrib2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(posAttrib2);
+
 	// run
 	for (bool running = true; running;) {
 		// handle events
 		SDL_Event sev;
 		if (SDL_WaitEventTimeout(&sev, 3) != 0) {
+			//std::cout << "Event\n";
 			// got event
 			const auto t = sev.type;
 			if (t == SDL_QUIT) {
@@ -132,9 +162,17 @@ int main(int argc, char *argv[]) {
 			}
 		} else {
 			// timeout
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			// rect 1
+			glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+			bind(rect);
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			// rect 2
+			glVertexAttribPointer(posAttrib2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+			bind(rect2);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			SDL_GL_SwapWindow(window);
-			std::cout << "Narf!\n";
+			//std::cout << "Timeout\n";
 		}
 	}
 

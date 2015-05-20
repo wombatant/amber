@@ -9,6 +9,20 @@ namespace amber {
 extern const GLchar *vshad;
 extern const GLchar *fshad;
 
+// BEGIN: Rect
+
+struct Rect {
+	GLuint ebo;
+	GLuint vbo;
+};
+
+Rect buildRect(float x = 0, float y = 0, float w = 0.5f, float h = 0.5f);
+
+void bind(Rect rect);
+
+// END: Rect
+
+
 GLuint buildVertShader(const GLchar *src, const char *shaderName = "unnamed vert shader");
 
 GLuint buildFragShader(const GLchar *src, const char *shaderName = "unnamed frag shader");
