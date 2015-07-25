@@ -162,28 +162,37 @@ int main(int argc, char *argv[]) {
 	glEnableVertexAttribArray(posAttrib2);
 
 	// run
-	for (bool running = true; running;) {
+	for (auto running = true; running;) {
 		// handle events
 		SDL_Event sev;
 		if (SDL_WaitEventTimeout(&sev, 3) != 0) {
 			//std::cout << "Event\n";
 			// got event
 			const auto t = sev.type;
-			if (t == SDL_QUIT) {
-				SDL_GL_DeleteContext(context);
-				SDL_Quit();
-				running = false;
+			switch (t) {
+				case SDL_QUIT: {
+					SDL_GL_DeleteContext(context);
+					SDL_Quit();
+					running = false;
+					break;
+				}
+				case SDL_KEYDOWN: {
+					if (sev.key.keysym.scancode == SDL_SCANCODE_Q) {
+						SDL_GL_DeleteContext(context);
+						SDL_Quit();
+						running = false;
+					}
+					break;
+				}
 			}
 		} else {
 			// timeout
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			// rect 1
-			glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
-			bind(rect);
+			glBindVertexArray(vao);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			// rect 2
-			glVertexAttribPointer(posAttrib2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-			bind(rect2);
+			glBindVertexArray(vao2);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			SDL_GL_SwapWindow(window);
 			//std::cout << "Timeout\n";
