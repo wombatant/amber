@@ -1,7 +1,7 @@
 #ifndef AMBER_HPP
 #define AMBER_HPP
 
-#include <GL/gl.h>
+#include <GLES3/gl3.h>
 
 
 namespace amber {

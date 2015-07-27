@@ -5,10 +5,7 @@
 #include <iostream>
 #include <math.h>
 
-//#define GL3_PROTOTYPES 1
-//#define GL_GLEXT_PROTOTYPES 1
-#include <GL/glew.h>
-#include <SDL2/SDL_opengl.h>
+#include <GLES3/gl3.h>
 
 #include <SDL2/SDL.h>
 
@@ -140,8 +137,6 @@ int main(int argc, char *argv[]) {
 	const auto dpiScale = 1;
 	const auto window = SDL_CreateWindow("Amber", 100, 100, 800 * dpiScale, 600 * dpiScale, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 	const auto context = SDL_GL_CreateContext(window);
-	glewExperimental = GL_TRUE;
-	glewInit();
 
 	// set up scene
 
@@ -157,7 +152,7 @@ int main(int argc, char *argv[]) {
 	glBindVertexArray(vao[0]);
 	bind(rect);
 	glUseProgram(shader);
-	auto posAttrib = glGetAttribLocation(shader, "position");
+	const auto posAttrib = glGetAttribLocation(shader, "position");
 	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(posAttrib);
 
