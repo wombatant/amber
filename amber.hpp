@@ -20,6 +20,8 @@ Rect buildRect(float x = 0, float y = 0, float w = 0.5f, float h = 0.5f);
 
 void bind(Rect rect);
 
+void destroy(Rect rect);
+
 // END: Rect
 
 

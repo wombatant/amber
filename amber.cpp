@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <vector>
 #include <iostream>
 #include <math.h>
 
@@ -16,18 +17,21 @@
 
 namespace amber {
 
+using std::vector;
+
 const GLchar *vshad = 
 	"#version 150\n"
 	"in vec2 position;"
+	"in vec2 offset;"
 	"void main() {"
-	"    gl_Position = vec4(position, 0.0, 1.0);"
+	"    gl_Position = vec4(position, 0.0, 1.0) + vec4(offset, 0.0, 0.0);"
 	"}";
 
 const GLchar *fshad = 
 	"#version 150\n"
 	"out vec4 outColor;"
 	"void main() {"
-	"    outColor = vec4(1.0, 1.0, 1.0, 1.0);"
+	"    outColor = vec4(0.0, 0.7, 1.0, 1.0);"
 	"}";
 
 GLuint buildShader(GLuint shaderType, const GLchar *src, const char *shaderName) {
@@ -40,7 +44,7 @@ GLuint buildShader(GLuint shaderType, const GLchar *src, const char *shaderName)
 		static const auto errMsgSize = 1000;
 		char errMsg[errMsgSize];
 		glGetShaderInfoLog(shader, errMsgSize, nullptr, errMsg);
-		printf("shader compile error in %s:\n%s\n", shaderName, errMsg);
+		fprintf(stderr, "shader compile error in %s:\n%s\n", shaderName, errMsg);
 		glDeleteShader(shader);
 		shader = 0;
 	}
@@ -55,13 +59,13 @@ GLuint buildFragShader(const GLchar *src, const char *shaderName) {
 	return buildShader(GL_FRAGMENT_SHADER, src, shaderName);
 }
 
-GLuint buildShaderProgram(const GLchar *vert, const GLchar *frag, GLuint buff) {
-	GLuint vs, fs, prgm = 0;
-	vs = buildVertShader(vert, "vshad");
+GLuint buildShaderProgram(const GLchar *vert, const GLchar *frag) {
+	GLuint prgm = 0;
+	const auto vs = buildVertShader(vert, "vshad");
 	if (!vs) {
 		glDeleteShader(vs);
 	} else {
-		fs = buildFragShader(frag, "fshad");
+		const auto fs = buildFragShader(frag, "fshad");
 		if (!fs) {
 			// cleanup shaders that were created
 			glDeleteShader(fs);
@@ -81,11 +85,11 @@ GLuint buildShaderProgram(const GLchar *vert, const GLchar *frag, GLuint buff) {
 // BEGIN: Rect
 
 Rect buildRect(float x, float y, float w, float h) {
-	float vertices[] = {
-		    x,     y, // top left
-		x + w,     y, // top right
-		x + w, y + h, // bottom right
-		    x, y + h, // bottom left
+	const float vertices[] = {
+		    x,     y, // bottom left
+		x + w,     y, // bottom right
+		x + w, y + h, // top right
+		    x, y + h, // top left
 	};
 	// vbo
 	GLuint vbo;
@@ -95,7 +99,7 @@ Rect buildRect(float x, float y, float w, float h) {
 	// ebo
 	GLuint ebo;
 	glGenBuffers(1, &ebo);
-	GLuint elms[] = {
+	const GLuint elms[] = {
 		0, 1, 2,
 		2, 3, 0
 	};
@@ -113,6 +117,11 @@ void bind(Rect rect) {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect.ebo);
 }
 
+void destroy(Rect rect) {
+	glDeleteBuffers(1, &rect.ebo);
+	glDeleteBuffers(1, &rect.vbo);
+}
+
 // END: Rect
 
 }
@@ -128,49 +137,40 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
-	auto window = SDL_CreateWindow("Amber", 100, 100, 800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-	auto context = SDL_GL_CreateContext(window);
+	const auto dpiScale = 1;
+	const auto window = SDL_CreateWindow("Amber", 100, 100, 800 * dpiScale, 600 * dpiScale, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+	const auto context = SDL_GL_CreateContext(window);
 	glewExperimental = GL_TRUE;
 	glewInit();
 
 	// set up scene
 
-	// vao
-	GLuint vao;
-	glGenVertexArrays(2, &vao);
-	glBindVertexArray(vao);
+	// rect
+	const auto rect = buildRect(0, 0);
+	const auto shader = buildShaderProgram(vshad, fshad);
 
-	// ebo
-	auto rect = buildRect(0, 0);
-	auto shader = buildShaderProgram(vshad, fshad, 0);
+	// setup vaos
+	vector<GLuint> vao(1);
+	glGenVertexArrays(vao.size(), vao.data());
+
+	// vao
+	glBindVertexArray(vao[0]);
+	bind(rect);
 	glUseProgram(shader);
 	auto posAttrib = glGetAttribLocation(shader, "position");
 	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 	glEnableVertexAttribArray(posAttrib);
-
-	// vao2
-	GLuint vao2;
-	glGenVertexArrays(2, &vao2);
-	glBindVertexArray(vao2);
-
-	// ebo2
-	auto rect2 = buildRect(-0.5f, -0.5f);
-	auto shader2 = buildShaderProgram(vshad, fshad, 0);
-	glUseProgram(shader2);
-	auto posAttrib2 = glGetAttribLocation(shader2, "position");
-	glVertexAttribPointer(posAttrib2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(posAttrib2);
 
 	// run
 	for (auto running = true; running;) {
 		// handle events
 		SDL_Event sev;
 		if (SDL_WaitEventTimeout(&sev, 3) != 0) {
-			//std::cout << "Event\n";
 			// got event
 			const auto t = sev.type;
 			switch (t) {
 				case SDL_QUIT: {
+					destroy(rect);
 					SDL_GL_DeleteContext(context);
 					SDL_Quit();
 					running = false;
@@ -178,6 +178,7 @@ int main(int argc, char *argv[]) {
 				}
 				case SDL_KEYDOWN: {
 					if (sev.key.keysym.scancode == SDL_SCANCODE_Q) {
+						destroy(rect);
 						SDL_GL_DeleteContext(context);
 						SDL_Quit();
 						running = false;
@@ -188,16 +189,15 @@ int main(int argc, char *argv[]) {
 		} else {
 			// timeout
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			// rect 1
-			glBindVertexArray(vao);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			// rect 2
-			glBindVertexArray(vao2);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			for (const GLuint v : vao) {
+				glBindVertexArray(v);
+				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			}
 			SDL_GL_SwapWindow(window);
-			//std::cout << "Timeout\n";
 		}
 	}
+
+	destroy(rect);
 
 	return 0;
 }
