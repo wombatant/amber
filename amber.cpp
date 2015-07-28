@@ -152,9 +152,13 @@ int main(int argc, char *argv[]) {
 	glBindVertexArray(vao[0]);
 	bind(rect);
 	glUseProgram(shader);
-	const auto posAttrib = glGetAttribLocation(shader, "position");
-	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
-	glEnableVertexAttribArray(posAttrib);
+	const auto offsetAttrib = glGetAttribLocation(shader, "offset");
+	const double offset[] = {
+		-0.5, -0.5,
+	};
+	glVertexAttribPointer(offsetAttrib, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(offset), offset, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(offsetAttrib);
 
 	// run
 	for (auto running = true; running;) {
