@@ -133,7 +133,6 @@ void bind(Rect rect, float x, float y) {
 		             x, y + rect.height, // top left
 	};
 
-	glBindBuffer(GL_ARRAY_BUFFER, rect.vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 }
 
@@ -165,10 +164,12 @@ int main(int argc, char *argv[]) {
 	// rect
 	const auto shader = buildShaderProgram(vshad, fshad);
 	const auto rect = buildRect(shader, 0, 0);
+	const auto rect2 = buildRect(shader, 0.5, 0.5);
 
 	// setup vaos
-	vector<GLuint> vao(1);
-	vao[0] = rect.vao;
+	vector<GLuint> vao;
+	vao.push_back(rect.vao);
+	vao.push_back(rect2.vao);
 	bind(rect, -0.5, -0.5);
 
 	// run
