@@ -19,9 +19,8 @@ using std::vector;
 const GLchar *vshad = 
 	"#version 150\n"
 	"in vec2 position;"
-	"in vec2 offset;"
 	"void main() {"
-	"    gl_Position = vec4(position, 0.0, 1.0) + vec4(offset, 0.0, 0.0);"
+	"    gl_Position = vec4(position, 0.0, 1.0);"
 	"}";
 
 const GLchar *fshad = 
@@ -81,42 +80,65 @@ GLuint buildShaderProgram(const GLchar *vert, const GLchar *frag) {
 
 // BEGIN: Rect
 
-Rect buildRect(float x, float y, float w, float h) {
+Rect buildRect(GLuint shaderPrgm, float x, float y, float w, float h) {
+	Rect rect;
+	rect.width = w;
+	rect.height = h;
 	const float vertices[] = {
 		    x,     y, // bottom left
 		x + w,     y, // bottom right
 		x + w, y + h, // top right
 		    x, y + h, // top left
 	};
+
 	// vbo
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glGenBuffers(1, &rect.vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, rect.vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
 	// ebo
-	GLuint ebo;
-	glGenBuffers(1, &ebo);
+	glGenBuffers(1, &rect.ebo);
 	const GLuint elms[] = {
 		0, 1, 2,
 		2, 3, 0
 	};
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect.ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elms), elms, GL_STATIC_DRAW);
-	// return Rect
-	Rect rect;
-	rect.vbo = vbo;
-	rect.ebo = ebo;
-	return rect;
-}
 
-void bind(Rect rect) {
+	// vao
+	glGenVertexArrays(1, &rect.vao);
+	glBindVertexArray(rect.vao);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
 	glBindBuffer(GL_ARRAY_BUFFER, rect.vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect.ebo);
+	glUseProgram(shaderPrgm);
+
+	return rect;
 }
 
 void destroy(Rect rect) {
 	glDeleteBuffers(1, &rect.ebo);
 	glDeleteBuffers(1, &rect.vbo);
+}
+
+void bind(Rect rect, float x, float y) {
+	glBindVertexArray(rect.vao);
+
+	// setup  vbo
+	glBindBuffer(GL_ARRAY_BUFFER, rect.vbo);
+	const float vertices[] = {
+		             x,               y, // bottom left
+		x + rect.width,               y, // bottom right
+		x + rect.width, y + rect.height, // top right
+		             x, y + rect.height, // top left
+	};
+
+	glBindBuffer(GL_ARRAY_BUFFER, rect.vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
+}
+
+void bind(Rect rect) {
+	glBindVertexArray(rect.vao);
 }
 
 // END: Rect
@@ -134,31 +156,20 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 
-	const auto dpiScale = 1;
+	const auto dpiScale = 2;
 	const auto window = SDL_CreateWindow("Amber", 100, 100, 800 * dpiScale, 600 * dpiScale, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 	const auto context = SDL_GL_CreateContext(window);
 
 	// set up scene
 
 	// rect
-	const auto rect = buildRect(0, 0);
 	const auto shader = buildShaderProgram(vshad, fshad);
+	const auto rect = buildRect(shader, 0, 0);
 
 	// setup vaos
 	vector<GLuint> vao(1);
-	glGenVertexArrays(vao.size(), vao.data());
-
-	// vao
-	glBindVertexArray(vao[0]);
-	bind(rect);
-	glUseProgram(shader);
-	const auto offsetAttrib = glGetAttribLocation(shader, "offset");
-	const double offset[] = {
-		-0.5, -0.5,
-	};
-	glVertexAttribPointer(offsetAttrib, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(offset), offset, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(offsetAttrib);
+	vao[0] = rect.vao;
+	bind(rect, -0.5, -0.5);
 
 	// run
 	for (auto running = true; running;) {

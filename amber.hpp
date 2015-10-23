@@ -12,11 +12,13 @@ extern const GLchar *fshad;
 // BEGIN: Rect
 
 struct Rect {
+	float width, height;
+	GLuint vao;
 	GLuint ebo;
 	GLuint vbo;
 };
 
-Rect buildRect(float x = 0, float y = 0, float w = 0.5f, float h = 0.5f);
+Rect buildRect(GLuint shaderPrgm, float x = 0, float y = 0, float w = 0.5f, float h = 0.5f);
 
 void bind(Rect rect);
 
