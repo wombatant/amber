@@ -9,6 +9,12 @@ namespace amber {
 extern const GLchar *vshad;
 extern const GLchar *fshad;
 
+/**
+ * Runs Amber specific initialization.
+ * This should be setup after OpenGL.
+ */
+void init();
+
 // BEGIN: Rect
 
 struct Rect {

@@ -6,6 +6,7 @@
 #include <math.h>
 
 #include <GLES3/gl3.h>
+#include <IL/il.h>
 
 #include <SDL2/SDL.h>
 
@@ -29,6 +30,10 @@ const GLchar *fshad =
 	"void main() {"
 	"    outColor = vec4(0.0, 0.7, 1.0, 1.0);"
 	"}";
+
+void init() {
+	ilInit();
+}
 
 GLuint buildShader(GLuint shaderType, const GLchar *src, const char *shaderName) {
 	auto shader = glCreateShader(shaderType);
@@ -142,6 +147,26 @@ void bind(Rect rect) {
 
 // END: Rect
 
+GLuint loadTexture(const char *path) {
+	GLuint imageId = 0;
+	ILuint ilId;
+	ilGenImages(1, &ilId);
+	ilBindImage(ilId);
+
+	if (ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE)) {
+		glGenTextures(1, &imageId);
+		glBindTexture(GL_TEXTURE_2D, imageId);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, ilGetInteger(IL_IMAGE_BPP),
+		ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT), 0,
+		ilGetInteger(IL_IMAGE_FORMAT), GL_UNSIGNED_BYTE, ilGetData());
+	}
+
+	ilDeleteImages(1, &ilId);
+	return imageId;
+}
+
 }
 
 
@@ -154,6 +179,10 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+
+
+	init();
+	auto texture = loadTexture("dirt.png");
 
 	const auto dpiScale = 2;
 	const auto window = SDL_CreateWindow("Amber", 100, 100, 800 * dpiScale, 600 * dpiScale, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
