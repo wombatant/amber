@@ -90,10 +90,10 @@ Rect buildRect(GLuint shaderPrgm, float x, float y, float w, float h) {
 	rect.width = w;
 	rect.height = h;
 	const float vertices[] = {
-		    x,     y, // bottom left
-		x + w,     y, // bottom right
-		x + w, y + h, // top right
-		    x, y + h, // top left
+		    x,     y, 0, 0, // bottom left
+		x + w,     y, 1, 0, // bottom right
+		x + w, y + h, 1, 1, // top right
+		    x, y + h, 0, 1, // top left
 	};
 
 	// vbo
@@ -113,7 +113,7 @@ Rect buildRect(GLuint shaderPrgm, float x, float y, float w, float h) {
 	glGenVertexArrays(1, &rect.vao);
 	glBindVertexArray(rect.vao);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
 	glBindBuffer(GL_ARRAY_BUFFER, rect.vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect.ebo);
 	glUseProgram(shaderPrgm);
@@ -132,10 +132,10 @@ void bind(Rect rect, float x, float y) {
 	// setup  vbo
 	glBindBuffer(GL_ARRAY_BUFFER, rect.vbo);
 	const float vertices[] = {
-		             x,               y, // bottom left
-		x + rect.width,               y, // bottom right
-		x + rect.width, y + rect.height, // top right
-		             x, y + rect.height, // top left
+		             x,               y, 0, 0, // bottom left
+		x + rect.width,               y, 1, 0, // bottom right
+		x + rect.width, y + rect.height, 1, 1, // top right
+		             x, y + rect.height, 0, 1, // top left
 	};
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_DYNAMIC_DRAW);
